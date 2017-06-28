@@ -17,6 +17,7 @@
 #include <hpx/throw_exception.hpp>
 #include <hpx/traits/acquire_future.hpp>
 #include <hpx/traits/action_remote_result.hpp>
+#include <hpx/traits/component_get_id.hpp>
 #include <hpx/traits/future_access.hpp>
 #include <hpx/traits/future_traits.hpp>
 #include <hpx/traits/is_client.hpp>
@@ -141,6 +142,19 @@ namespace hpx { namespace traits
             typedef id_type type;
         };
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    template <typename Client>
+    struct component_get_id<Client,
+        typename std::enable_if<is_client<Client>::value>::type>
+    {
+        template <typename Derived, typename Stub>
+        static hpx::id_type call(
+            components::client_base<Derived, Stub> const& client)
+        {
+            return client.get();
+        }
+    };
 }}
 
 namespace hpx { namespace lcos { namespace detail
@@ -529,7 +543,9 @@ namespace hpx { namespace components
         static void register_as_helper(Derived && f,
             std::string const& symbolic_name)
         {
-            hpx::agas::register_name(launch::sync, symbolic_name, f.get());
+            hpx::agas::register_name(launch::sync, symbolic_name,
+                hpx::traits::component_get_id<Derived>::call(
+                    std::forward<Derived>(f)));
         }
 
     public:
